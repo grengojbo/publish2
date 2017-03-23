@@ -3,6 +3,8 @@
 *.sqlite3
 *.swp
 .~lock.*
+~*
+*.orig
 *.elc
 .rbenv-version
 tags
@@ -16,3 +18,4 @@ TAGS
 gin-bin
 *.js.map
 node_modules/
+.idea/
