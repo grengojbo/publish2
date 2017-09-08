@@ -45,13 +45,11 @@ func enablePublishMode(res resource.Resourcer) {
 			}
 
 			if IsSchedulableModel(res.Value) {
-				if res.GetMeta("ScheduledEventID") == nil {
-					res.Meta(&admin.Meta{
-						Name:  "ScheduledEventID",
-						Label: "Scheduled Event",
-						Type:  "hidden",
-					})
-				}
+				res.Meta(&admin.Meta{
+					Name:  "ScheduledEventID",
+					Label: "Scheduled Event",
+					Type:  "hidden",
+				})
 
 				res.IndexAttrs(res.IndexAttrs(), "-ScheduledEventID")
 				res.EditAttrs(res.EditAttrs(), "ScheduledStartAt", "ScheduledEndAt", "ScheduledEventID")
@@ -63,19 +61,15 @@ func enablePublishMode(res resource.Resourcer) {
 			}
 
 			if IsVersionableModel(res.Value) {
-				if res.GetMeta("VersionPriority") == nil {
-					res.Meta(&admin.Meta{
-						Name: "VersionPriority",
-						Type: "hidden",
-					})
-				}
+				res.Meta(&admin.Meta{
+					Name: "VersionPriority",
+					Type: "hidden",
+				})
 
-				if res.GetMeta("VersionName") == nil {
-					res.Meta(&admin.Meta{
-						Name: "VersionName",
-						Type: "hidden",
-					})
-				}
+				res.Meta(&admin.Meta{
+					Name: "VersionName",
+					Type: "hidden",
+				})
 
 				res.Action(&admin.Action{
 					Name:        "Create New Version",
@@ -96,7 +90,7 @@ func enablePublishMode(res resource.Resourcer) {
 
 				router := res.GetAdmin().GetRouter()
 				ctr := controller{Resource: res}
-				router.Get(path.Join(res.RoutePrefix(), res.ToParam(), res.ParamIDName(), "versions"), ctr.Versions, admin.RouteConfig{Resource: res})
+				router.Get(path.Join(res.RoutePrefix(), res.ToParam(), res.ParamIDName(), "versions"), ctr.Versions, &admin.RouteConfig{Resource: res})
 
 				res.IndexAttrs(res.IndexAttrs(), "-VersionPriority")
 				res.EditAttrs(res.EditAttrs(), "-VersionPriority", "VersionName")
@@ -104,16 +98,14 @@ func enablePublishMode(res resource.Resourcer) {
 			}
 
 			if IsPublishReadyableModel(res.Value) || IsSchedulableModel(res.Value) || IsVersionableModel(res.Value) {
-				if res.GetMeta("PublishLiveNow") == nil {
-					res.Meta(&admin.Meta{
-						Name:  "PublishLiveNow",
-						Label: "Live Now",
-						Type:  "publish_live_now",
-						Valuer: func(interface{}, *qor.Context) interface{} {
-							return ""
-						},
-					})
-				}
+				res.Meta(&admin.Meta{
+					Name:  "PublishLiveNow",
+					Label: "Live Now",
+					Type:  "publish_live_now",
+					Valuer: func(interface{}, *qor.Context) interface{} {
+						return ""
+					},
+				})
 
 				res.IndexAttrs(res.IndexAttrs(), "PublishLiveNow")
 				res.EditAttrs(res.EditAttrs(), "-PublishLiveNow")
@@ -121,41 +113,37 @@ func enablePublishMode(res resource.Resourcer) {
 			}
 
 			if IsShareableVersionModel(res.Value) {
-				if res.GetMeta("VersionName") == nil {
-					res.Meta(&admin.Meta{
-						Name: "VersionName",
-						Type: "hidden",
-						Valuer: func(record interface{}, context *qor.Context) interface{} {
-							if shareableVersion, ok := record.(ShareableVersionInterface); ok {
-								return shareableVersion.GetSharedVersionName()
-							}
-							return ""
-						},
-						Setter: func(record interface{}, metaValue *resource.MetaValue, context *qor.Context) {
-						},
-					})
-				}
+				res.Meta(&admin.Meta{
+					Name: "VersionName",
+					Type: "hidden",
+					Valuer: func(record interface{}, context *qor.Context) interface{} {
+						if shareableVersion, ok := record.(ShareableVersionInterface); ok {
+							return shareableVersion.GetSharedVersionName()
+						}
+						return ""
+					},
+					Setter: func(record interface{}, metaValue *resource.MetaValue, context *qor.Context) {
+					},
+				})
 
-				if res.GetMeta("ShareableVersion") == nil {
-					res.Meta(&admin.Meta{
-						Name: "ShareableVersion",
-						Type: "string",
-						Valuer: func(record interface{}, context *qor.Context) interface{} {
+				res.Meta(&admin.Meta{
+					Name: "ShareableVersion",
+					Type: "string",
+					Valuer: func(record interface{}, context *qor.Context) interface{} {
+						if shareableVersion, ok := record.(ShareableVersionInterface); ok {
+							return shareableVersion.GetSharedVersionName() != ""
+						}
+						return false
+					},
+					Setter: func(record interface{}, metaValue *resource.MetaValue, context *qor.Context) {
+						if utils.ToString(metaValue.Value) == "true" {
 							if shareableVersion, ok := record.(ShareableVersionInterface); ok {
-								return shareableVersion.GetSharedVersionName() != ""
+								versionName := context.Request.Form.Get("QorResource.VersionName")
+								shareableVersion.SetSharedVersionName(versionName)
 							}
-							return false
-						},
-						Setter: func(record interface{}, metaValue *resource.MetaValue, context *qor.Context) {
-							if utils.ToString(metaValue.Value) == "true" {
-								if shareableVersion, ok := record.(ShareableVersionInterface); ok {
-									versionName := context.Request.Form.Get("QorResource.VersionName")
-									shareableVersion.SetSharedVersionName(versionName)
-								}
-							}
-						},
-					})
-				}
+						}
+					},
+				})
 			}
 
 			res.GetAdmin().RegisterFuncMap("get_schedule_event", func(record interface{}, context *admin.Context) interface{} {
@@ -303,13 +291,13 @@ func (Publish) ConfigureQorResourceBeforeInitialize(res resource.Resourcer) {
 
 					if startAt := context.Request.URL.Query().Get("schedule_start_at"); startAt != "" {
 						if t, err := utils.ParseTime(startAt, context.Context); err == nil {
-							tx = tx.Set(ScheduledStart, t).Set(VersionMode, VersionMultipleMode)
+							tx = tx.Set(VisibleMode, "on").Set(ScheduleMode, "on").Set(ScheduledStart, t).Set(VersionMode, VersionMultipleMode)
 						}
 					}
 
 					if endAt := context.Request.URL.Query().Get("schedule_end_at"); endAt != "" {
 						if t, err := utils.ParseTime(endAt, context.Context); err == nil {
-							tx = tx.Set(ScheduledEnd, t).Set(VersionMode, VersionMultipleMode)
+							tx = tx.Set(VisibleMode, "on").Set(ScheduleMode, "on").Set(ScheduledEnd, t).Set(VersionMode, VersionMultipleMode)
 						}
 					}
 
@@ -363,7 +351,7 @@ func (Publish) ConfigureQorResourceBeforeInitialize(res resource.Resourcer) {
 			})
 
 			ctr := controller{Resource: res}
-			Admin.GetRouter().Get(res.ToParam(), ctr.Dashboard, admin.RouteConfig{Resource: res})
+			Admin.GetRouter().Get(res.ToParam(), ctr.Dashboard, &admin.RouteConfig{Resource: res})
 		}
 	}
 }
