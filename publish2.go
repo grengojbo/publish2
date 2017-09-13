@@ -11,6 +11,7 @@ import (
 	"github.com/qor/qor"
 	"github.com/qor/qor/resource"
 	"github.com/qor/qor/utils"
+	"strconv"
 )
 
 func init() {
@@ -92,9 +93,9 @@ func enablePublishMode(res resource.Resourcer) {
 				ctr := controller{Resource: res}
 				router.Get(path.Join(res.RoutePrefix(), res.ToParam(), res.ParamIDName(), "versions"), ctr.Versions, &admin.RouteConfig{Resource: res})
 
-				res.IndexAttrs(res.IndexAttrs(), "-VersionPriority")
-				res.EditAttrs(res.EditAttrs(), "-VersionPriority", "VersionName")
-				res.NewAttrs(res.NewAttrs(), "-VersionPriority", "VersionName")
+				res.IndexAttrs(res.IndexAttrs(), "-VersionPriority", "-VersionName")
+				res.EditAttrs(res.EditAttrs(), "-VersionPriority")
+				res.NewAttrs(res.NewAttrs(), "-VersionPriority")
 			}
 
 			if IsPublishReadyableModel(res.Value) || IsSchedulableModel(res.Value) || IsVersionableModel(res.Value) {
@@ -186,7 +187,12 @@ func enablePublishMode(res resource.Resourcer) {
 			}
 
 			res.GetAdmin().RegisterFuncMap("get_new_version_name", func(record interface{}, context *admin.Context) interface{} {
-				return fmt.Sprintf("v%v", getVersionsCount(record, context))
+				ver := getVersionsCount(record, context)
+				v := fmt.Sprintf("%v", ver)
+				vi, _ := strconv.Atoi(v)
+				//newVersion := vi+1
+				//fmt.Println("VERSION -------->", ver, "|", newVersion)
+				return fmt.Sprintf("v%d", vi+1)
 			})
 
 			res.GetAdmin().RegisterFuncMap("get_publish_schedule_time", func(context *admin.Context) interface{} {
