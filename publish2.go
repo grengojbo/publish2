@@ -39,9 +39,15 @@ func enablePublishMode(res resource.Resourcer) {
 			res.UseTheme("publish2")
 
 			if IsPublishReadyableModel(res.Value) {
-				res.IndexAttrs(res.IndexAttrs(), "-PublishReady")
-				res.EditAttrs(res.EditAttrs(), "PublishReady")
-				res.NewAttrs(res.NewAttrs(), "PublishReady")
+				res.OverrideIndexAttrs(func() {
+					res.IndexAttrs(res.IndexAttrs(), "-PublishReady")
+				})
+				res.OverrideEditAttrs(func() {
+					res.EditAttrs(res.EditAttrs(), "PublishReady")
+				})
+				res.OverrideNewAttrs(func() {
+					res.NewAttrs(res.NewAttrs(), "PublishReady")
+				})
 			}
 
 			if IsSchedulableModel(res.Value) {
@@ -51,9 +57,15 @@ func enablePublishMode(res resource.Resourcer) {
 					Type:  "hidden",
 				})
 
-				res.IndexAttrs(res.IndexAttrs(), "-ScheduledEventID")
-				res.EditAttrs(res.EditAttrs(), "ScheduledStartAt", "ScheduledEndAt", "ScheduledEventID")
-				res.NewAttrs(res.NewAttrs(), "ScheduledStartAt", "ScheduledEndAt", "ScheduledEventID")
+				res.OverrideIndexAttrs(func() {
+					res.IndexAttrs(res.IndexAttrs(), "-ScheduledEventID")
+				})
+				res.OverrideEditAttrs(func() {
+					res.EditAttrs(res.EditAttrs(), "ScheduledStartAt", "ScheduledEndAt", "ScheduledEventID")
+				})
+				res.OverrideNewAttrs(func() {
+					res.NewAttrs(res.NewAttrs(), "ScheduledStartAt", "ScheduledEndAt", "ScheduledEventID")
+				})
 
 				if res.GetAdmin().GetResource(utils.ModelType(&Publish{}).Name()) == nil {
 					res.GetAdmin().AddResource(&Publish{})
@@ -92,9 +104,15 @@ func enablePublishMode(res resource.Resourcer) {
 				ctr := controller{Resource: res}
 				router.Get(path.Join(res.RoutePrefix(), res.ToParam(), res.ParamIDName(), "versions"), ctr.Versions, &admin.RouteConfig{Resource: res})
 
-				res.IndexAttrs(res.IndexAttrs(), "-VersionPriority")
-				res.EditAttrs(res.EditAttrs(), "-VersionPriority", "VersionName")
-				res.NewAttrs(res.NewAttrs(), "-VersionPriority", "VersionName")
+				res.OverrideIndexAttrs(func() {
+					res.IndexAttrs(res.IndexAttrs(), "-VersionPriority")
+				})
+				res.OverrideEditAttrs(func() {
+					res.EditAttrs(res.EditAttrs(), "-VersionPriority", "VersionName")
+				})
+				res.OverrideNewAttrs(func() {
+					res.NewAttrs(res.NewAttrs(), "-VersionPriority", "VersionName")
+				})
 			}
 
 			if IsPublishReadyableModel(res.Value) || IsSchedulableModel(res.Value) || IsVersionableModel(res.Value) {
@@ -107,9 +125,15 @@ func enablePublishMode(res resource.Resourcer) {
 					},
 				})
 
-				res.IndexAttrs(res.IndexAttrs(), "PublishLiveNow")
-				res.EditAttrs(res.EditAttrs(), "-PublishLiveNow")
-				res.NewAttrs(res.NewAttrs(), "-PublishLiveNow")
+				res.OverrideIndexAttrs(func() {
+					res.IndexAttrs(res.IndexAttrs(), "PublishLiveNow")
+				})
+				res.OverrideEditAttrs(func() {
+					res.EditAttrs(res.EditAttrs(), "-PublishLiveNow")
+				})
+				res.OverrideNewAttrs(func() {
+					res.NewAttrs(res.NewAttrs(), "-PublishLiveNow")
+				})
 			}
 
 			if IsShareableVersionModel(res.Value) {
@@ -252,35 +276,38 @@ func (Publish) ConfigureQorResourceBeforeInitialize(res resource.Resourcer) {
 		Admin := res.GetAdmin()
 		if Admin.GetResource("ScheduledEvent") == nil {
 			Admin.AddResource(&ScheduledEvent{}, &admin.Config{Name: "Event", Menu: res.Config.Menu, Priority: -1})
-			Admin.Config.DB.AutoMigrate(&ScheduledEvent{})
+			Admin.DB.AutoMigrate(&ScheduledEvent{})
 		}
 
 		scheduledEventResource := res.GetAdmin().GetResource("ScheduledEvent")
-		scheduledEventResource.AddProcessor(func(record interface{}, metaValues *resource.MetaValues, context *qor.Context) error {
-			var (
-				db             = context.GetDB()
-				scope          = db.NewScope(record)
-				startAt, endAt interface{}
-			)
+		scheduledEventResource.AddProcessor(&resource.Processor{
+			Name: "scheduled-event-processor",
+			Handler: func(record interface{}, metaValues *resource.MetaValues, context *qor.Context) error {
+				var (
+					db             = context.GetDB()
+					scope          = db.NewScope(record)
+					startAt, endAt interface{}
+				)
 
-			if field, ok := scope.FieldByName("ScheduledStartAt"); ok {
-				startAt = field.Field.Interface()
-			}
-			if field, ok := scope.FieldByName("ScheduledEndAt"); ok {
-				endAt = field.Field.Interface()
-			}
+				if field, ok := scope.FieldByName("ScheduledStartAt"); ok {
+					startAt = field.Field.Interface()
+				}
+				if field, ok := scope.FieldByName("ScheduledEndAt"); ok {
+					endAt = field.Field.Interface()
+				}
 
-			if startAt != nil || endAt != nil {
-				for _, res := range res.GetAdmin().GetResources() {
-					if IsSchedulableModel(res.Value) {
-						if err := db.Table(db.NewScope(res.Value).TableName()).Where("scheduled_event_id = ?", scope.PrimaryKeyValue()).UpdateColumns(map[string]interface{}{"scheduled_start_at": startAt, "scheduled_end_at": endAt}).Error; err != nil {
-							return err
+				if startAt != nil || endAt != nil {
+					for _, res := range res.GetAdmin().GetResources() {
+						if IsSchedulableModel(res.Value) {
+							if err := db.Table(db.NewScope(res.Value).TableName()).Where("scheduled_event_id = ?", scope.PrimaryKeyValue()).UpdateColumns(map[string]interface{}{"scheduled_start_at": startAt, "scheduled_end_at": endAt}).Error; err != nil {
+								return err
+							}
 						}
 					}
 				}
-			}
 
-			return nil
+				return nil
+			},
 		})
 
 		if Admin.GetRouter().GetMiddleware("publish2") == nil {
