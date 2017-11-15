@@ -77,7 +77,9 @@
 
         initActionTemplate: function() {
             if (!$(CLASS_PUBLISH_ACTION).closest('.qor-slideout').length) {
-                $(CLASS_PUBLISH_ACTION).prependTo($('.mdl-layout__content .qor-page__body form').first()).show();
+                $(CLASS_PUBLISH_ACTION)
+                    .prependTo($('.mdl-layout__content .qor-page__body form').first())
+                    .show();
             }
             QorPublish2.initSharedVersion();
         },
@@ -130,7 +132,10 @@
                 $input.attr('disabled', true);
             } else {
                 $button.show();
-                $input.attr('disabled', false).closest('.is-disabled').removeClass('is-disabled');
+                $input
+                    .attr('disabled', false)
+                    .closest('.is-disabled')
+                    .removeClass('is-disabled');
             }
 
             $start.trigger('change');
@@ -147,9 +152,7 @@
                 $list,
                 $newRow = $('<tr class="' + VERSION_LIST + '"><td colspan="' + colspan + '"></td></tr>'),
                 $version = $(
-                    '<div class="' +
-                        VERSION_BLOCK +
-                        '"><div style="text-align: center;"><div class="mdl-spinner mdl-js-spinner is-active"></div></div></div>'
+                    '<div class="' + VERSION_BLOCK + '"><div style="text-align: center;"><div class="mdl-spinner mdl-js-spinner is-active"></div></div></div>'
                 );
 
             if ($tr.hasClass(IS_SHOW_VERSION)) {
@@ -187,7 +190,9 @@
 
             url &&
                 $.get(url, function(html) {
-                    $(CLASS_VERSION_BLOCK).html(html).trigger('enable');
+                    $(CLASS_VERSION_BLOCK)
+                        .html(html)
+                        .trigger('enable');
                 });
 
             return false;
@@ -250,13 +255,19 @@
     $.fn.qorSliderAfterShow.initSharedVersion = QorPublish2.initSharedVersion;
 
     $.fn.qorSliderAfterShow.initPublishForm = function() {
-        var $action = $(CLASS_PUBLISH_ACTION),
+        let $action = $(CLASS_PUBLISH_ACTION),
             $types = $action.find('[data-action-type]'),
+            $slideoutForm = $('.qor-slideout__body form'),
+            $bottomsheetForm = $('.qor-bottomsheets__body form'),
             element = QorPublish2.ELEMENT;
 
         // move publsh2 actions into slideout form tag
         if ($action.length) {
-            $action.prependTo($('.qor-slideout__body form').first());
+            if ($bottomsheetForm.length) {
+                $action.prependTo($bottomsheetForm.first());
+            } else if ($slideoutForm.length) {
+                $action.prependTo($slideoutForm.first());
+            }
         }
 
         if (!$action.length || !$types.length) {
@@ -265,7 +276,9 @@
 
         $types.each(function() {
             var $this = $(this);
-            $(element[$this.data('actionType')]).closest('.qor-form-section').hide();
+            $(element[$this.data('actionType')])
+                .closest('.qor-form-section')
+                .hide();
         });
 
         $(CLASS_PUBLISH_ACTION_INPUT).trigger(EVENT_CHANGE);
