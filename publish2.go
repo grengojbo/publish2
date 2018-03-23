@@ -214,8 +214,8 @@ func enablePublishMode(res resource.Resourcer) {
 				ver := getVersionsCount(record, context)
 				v := fmt.Sprintf("%v", ver)
 				vi, _ := strconv.Atoi(v)
-				//newVersion := vi+1
-				//fmt.Println("VERSION -------->", ver, "|", newVersion)
+				// newVersion := vi+1
+				// fmt.Println("VERSION -------->", ver, "|", newVersion)
 				return fmt.Sprintf("v%d", vi+1)
 			})
 

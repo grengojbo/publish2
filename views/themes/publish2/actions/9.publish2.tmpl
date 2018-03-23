@@ -12,7 +12,7 @@
       {{$versionMeta := $resource.GetMeta "VersionName"}}
       {{if $versionMeta}}
         <div class="qor-field qor-publish2__action_version_name">
-          <div class="mdl-textfield mdl-textfield--full-width mdl-js-textfield">
+          <div class="mdl-textfield mdl-textfield--full-width mdl-js-textfield" style="display: none">
             <label class="qor-field__label mdl-textfield__label" for="">
               {{if $creating_new_version}}
                 {{t (printf "%v.attributes.new_version_name" .Resource.ToParam) "New Version Name"}}
