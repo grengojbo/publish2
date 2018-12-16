@@ -17,5 +17,8 @@
     "babel-loader": "^7.1.0",
     "babel-core": "^6.25.0",
     "babel-preset-env": "^1.5.2"
+  },
+  "dependencies": {
+    "webpack": "^4.27.1"
   }
 }
